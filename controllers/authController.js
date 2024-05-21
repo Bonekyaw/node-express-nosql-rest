@@ -15,7 +15,7 @@ const {
   checkPhoneIfNotExist,
   checkOtpErrorIfSameDate,
   checkOtpPhone,
-} = require("./../util/auth");
+} = require("../utils/auth");
 
 exports.register = asyncHandler(async (req, res, next) => {
   const phone = req.body.phone;
