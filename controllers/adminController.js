@@ -2,7 +2,7 @@ const Admin = require("../models/admin");
 // const Otp = require("../models/otp");
 
 const asyncHandler = require("express-async-handler");
-const { body, validationResult } = require("express-validator");
+// const { body, validationResult } = require("express-validator");
 
 const moment = require("moment-timezone");
 
