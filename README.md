@@ -35,6 +35,15 @@ TOKEN_SECRET="should something hard to read"
 
 
 ```
+Please note.   
+*TOKEN_SECRET* should be complex and hard to guest.  
+After git clone, it should be run.
+
+```
+npm install
+npm start
+
+```  
 
 If you have something hard to solve,
 DM  
