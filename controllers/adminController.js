@@ -1,7 +1,7 @@
 const { unlink } = require("node:fs/promises");
 const asyncHandler = require("express-async-handler");
 // const { body, validationResult } = require("express-validator");
-const path = require('path');
+const path = require("path");
 
 const Admin = require("../models/admin");
 
@@ -21,7 +21,12 @@ exports.uploadProfile = asyncHandler(async (req, res, next) => {
 
   if (admin.profile) {
     // await unlink(admin.profile); // Delete an old profile image because it accepts just one.
-    await unlink(path.join(__dirname, '..', admin.profile));
+    try {
+      await unlink(path.join(__dirname, "..", admin.profile));
+    } catch (error) {
+      admin.profile = imageUrl;
+      await admin.save();
+    }
   }
 
   admin.profile = imageUrl;
@@ -73,4 +78,3 @@ exports.destroy = (req, res, next) => {
 
 // const admin = new Admin({name: "Mg Mg",email ...});
 // await admin.save();
-
