@@ -1,10 +1,9 @@
 const { unlink } = require("node:fs/promises");
 const asyncHandler = require("express-async-handler");
 // const { body, validationResult } = require("express-validator");
-const moment = require("moment-timezone");
+const path = require('path');
 
 const Admin = require("../models/admin");
-// const Otp = require("../models/otp");
 
 const { checkAdmin } = require("./../utils/auth");
 const { checkUploadFile } = require("./../utils/file");
@@ -21,7 +20,8 @@ exports.uploadProfile = asyncHandler(async (req, res, next) => {
   const imageUrl = image.path.replace("\\", "/");
 
   if (admin.profile) {
-    await unlink(admin.profile); // Delete an old profile image because it accepts just one.
+    // await unlink(admin.profile); // Delete an old profile image because it accepts just one.
+    await unlink(path.join(__dirname, '..', admin.profile));
   }
 
   admin.profile = imageUrl;
