@@ -15,6 +15,7 @@ const {
   checkPhoneIfNotExist,
   checkOtpErrorIfSameDate,
   checkOtpPhone,
+  checkAdmin,
 } = require("../utils/auth");
 
 exports.register = asyncHandler(async (req, res, next) => {
@@ -327,5 +328,66 @@ exports.login = [
     });
   }),
 ];
+
+exports.refreshToken = [
+  // Validate and sanitize fields.
+  body("randomToken", "randomToken must not be empty.")
+    .trim()
+    .notEmpty()
+    .escape(),
+  body("user_id", "User ID must not be empty.").trim().notEmpty().escape(),
+
+  asyncHandler(async (req, res, next) => {
+    // Extract the validation errors from a request.
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      // There are errors. Render form again with sanitized values/error messages.
+      const err = new Error("Validation failed!");
+      err.status = 400;
+      return next(err);
+    }
+
+    const authHeader = req.get("Authorization");
+    if (!authHeader) {
+      const err = new Error("You are not an authenticated user!.");
+      err.status = 401;
+      throw err;
+    }
+    const { randomToken, user_id } = req.body;
+
+    const admin = await Admin.findById(user_id);
+    checkAdmin(admin);
+
+    if (admin.randToken !== randomToken) {
+      admin.error = 5;
+      await admin.save();
+
+      const err = new Error(
+        "This request may be an attack. Please contact the admin team."
+      );
+      err.status = 400;
+      return next(err);
+    }
+
+    const randToken = rand() + rand() + rand();
+
+    admin.randToken = randToken;
+    await admin.save();
+
+    // jwt token
+    let payload = { id: user_id };
+    const jwtToken = jwt.sign(payload, process.env.TOKEN_SECRET, {
+      expiresIn: "1h",
+    });
+
+    res.status(201).json({
+      message: "Successfully sent a new token.",
+      token: jwtToken,
+      user_id: user_id,
+      randomToken: randToken,
+    });
+  }),
+];
+
 
 const rand = () => Math.random().toString(36).substring(2);
