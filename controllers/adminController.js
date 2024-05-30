@@ -1,21 +1,20 @@
 const { unlink } = require("node:fs/promises");
 const asyncHandler = require("express-async-handler");
-// const { body, validationResult } = require("express-validator");
+const { body, query, validationResult } = require("express-validator");
 const path = require("path");
 
 const Admin = require("../models/admin");
 
-const { checkAdmin } = require("./../utils/auth");
+const authorise = require("./../utils/authorise");
+const paginate = require("./../utils/paginate");
 const { checkUploadFile } = require("./../utils/file");
 
 exports.uploadProfile = asyncHandler(async (req, res, next) => {
   // const id = req.params.id;
-  const id = req.adminId;
   const image = req.file;
   // console.log("Multiple Images array", req.files);  // For multiple files uploaded
 
-  const admin = await Admin.findById(id);
-  checkAdmin(admin);
+  const admin = req.admin;
   checkUploadFile(image);
   const imageUrl = image.path.replace("\\", "/");
 
@@ -37,30 +36,41 @@ exports.uploadProfile = asyncHandler(async (req, res, next) => {
     .json({ message: "Successfully uploaded the image.", profile: imageUrl });
 });
 
-exports.index = async (req, res, next) => {
-  //   const admins = await Admin.find().exec();
-  //   res.json({
-  //     createdTime: admins[13].createdAt,
-  //     MomentTime: moment(admins[13].createdAt).tz("Asia/Yangon").format(),
-  //     admins: admins,
-  //  });
-  res.json({ success: true });
-};
+exports.index = [
+  // Validate and sanitize fields.
+  query("page", "Page number must be integer.").isInt({ gt: 0 }).toInt(),
+  query("limit", "Limit number must be integer.")
+    .isInt({ min: 1, max: 15 })
+    .toInt(),
+
+  asyncHandler(async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      // There are errors. Render form again with sanitized values/error messages.
+      const err = new Error("Validation failed!");
+      err.status = 400;
+      return next(err);
+    }
+    // Authorization - if it is "user" role, no one is allowed.
+    // Same as - authorise(true, admin, "super", "manager", "editor")
+    // const admin = req.admin;
+    // authorise(false, admin, "user");
+
+    const { page, limit } = req.query;
+    // const limit = req.query.limit;
+    // const cursors = req.query.cursor ?? null;
+
+    const filters = { status: "active" };
+    const fields = "name phone role status lastLogin profile createdAt";
+    const sort = "-createdAt";
+
+    const result = await paginate.offset(Admin, page, limit, filters, fields, sort);
+    // const result = await paginate.cursor(Admin, cursors, limit, fields, sort);
+    res.status(200).json(result);
+  }),
+];
 
 exports.store = asyncHandler(async (req, res, next) => {
-  // const admin = new Admin({
-  //   name: req.body.name,
-  //   phone: req.body.phone,
-  //   email: req.body.email,
-  //   password: req.body.password,
-  //   role: req.body.role,
-  //   lastLogin: req.body.lastLogin,
-  // });
-  // await admin.save();
-  // res.status(201).json({
-  //   message: "Successfully created an admin.",
-  //   admin: admin,
-  // });
   res.json({ success: true });
 });
 
@@ -75,6 +85,3 @@ exports.update = (req, res, next) => {
 exports.destroy = (req, res, next) => {
   res.json({ success: true });
 };
-
-// const admin = new Admin({name: "Mg Mg",email ...});
-// await admin.save();
