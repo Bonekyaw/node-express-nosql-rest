@@ -3,7 +3,14 @@
  * There are two methods: offset-based and cursor-based paginations.
  * This is offset-based pagination.
  */
-exports.offset = async (model, page = 1, limit = 10, filters = {}, fields = {}, sort = {}) => {
+exports.offset = async (
+  model,
+  page = 1,
+  limit = 10,
+  filters = {},
+  fields = {},
+  sort = {}
+) => {
   const offset = (page - 1) * limit;
 
   // count = await model.estimatedDocumentCount(filters); // For Large Datasets
@@ -36,6 +43,46 @@ exports.offset = async (model, page = 1, limit = 10, filters = {}, fields = {}, 
   };
 };
 
+exports.noCount = async (
+  model,
+  page = 1,
+  limit = 10,
+  filters = {},
+  fields = {},
+  sort = {}
+) => {
+  const offset = (page - 1) * limit;
+
+  // collections = await model
+  //   .find(filters, fields, { skip: offset, limit: limit })
+  //   .exec();
+  let collections;
+  try {
+    collections = await model
+      .find(filters, fields)
+      .sort(sort)
+      .skip(offset)
+      .limit(limit + 1);
+  } catch (error) {
+    error.status = 500;
+    throw error;
+  }
+
+  let hasNextPage = false;
+  if (collections.length > limit) {
+    // if got an extra result
+    hasNextPage = true; // has a next page of results
+    collections.pop(); // remove extra result
+  }
+
+  return {
+    data: collections,
+    currentPage: page,
+    previousPage: page == 1 ? null : page - 1,
+    nextPage: hasNextPage ? page + 1 : null,
+    countPerPage: limit,
+  };
+};
 /*
  * Pagination
  * There are two methods: offset-based and cursor-based paginations.
@@ -46,12 +93,12 @@ exports.cursor = async (model, cursor, limit = 10, fields = {}, sort = {}) => {
     ? { createdAt: { $lt: new Date(cursor) } } // Fetch admins created before the cursor
     : {};
 
-  let collections; 
+  let collections;
   try {
     collections = await model
-    .find(query, fields)
-    .sort(sort) // Sort by createdAt in descending order
-    .limit(limit + 1); // Fetch one extra document to check if there's a next page
+      .find(query, fields)
+      .sort(sort) // Sort by createdAt in descending order
+      .limit(limit + 1); // Fetch one extra document to check if there's a next page
   } catch (error) {
     error.status = 500;
     throw error;
@@ -69,7 +116,3 @@ exports.cursor = async (model, cursor, limit = 10, fields = {}, sort = {}) => {
       : null,
   };
 };
-
-
-
-
