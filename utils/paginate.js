@@ -15,8 +15,8 @@ exports.offset = async (
   const offset = (page - 1) * limit;
 
   try {
-    const results = lookup_1
-      ? await model.aggregate([
+    const aggregatePipeline = lookup_1
+      ? [
           { $match: filters },
           {
             $facet: {
@@ -30,8 +30,8 @@ exports.offset = async (
               totalCount: [{ $match: filters }, { $count: "count" }],
             },
           },
-        ])
-      : await model.aggregate([
+        ]
+      : [
           { $match: filters },
           {
             $facet: {
@@ -44,8 +44,8 @@ exports.offset = async (
               totalCount: [{ $match: filters }, { $count: "count" }],
             },
           },
-        ]);
-
+        ];
+    const results = await model.aggregate(aggregatePipeline);
     const collections = results[0]?.data || [];
     const count = results[0]?.totalCount[0]?.count || 0;
 
@@ -78,9 +78,8 @@ exports.noCount = async (
   // collections = await model
   //   .find(filters, fields, { skip: offset, limit: limit })
   //   .exec();
-  let collections;
   try {
-    collections = populate
+    const collections = populate
       ? await model
           .find(filters, fields)
           .sort(sort)
@@ -92,25 +91,24 @@ exports.noCount = async (
           .sort(sort)
           .skip(offset)
           .limit(limit + 1);
+    let hasNextPage = false;
+    if (collections.length > limit) {
+      // if got an extra result
+      hasNextPage = true; // has a next page of results
+      collections.pop(); // remove extra result
+    }
+
+    return {
+      data: collections,
+      currentPage: page,
+      previousPage: page == 1 ? null : page - 1,
+      nextPage: hasNextPage ? page + 1 : null,
+      countPerPage: limit,
+    };
   } catch (error) {
     error.status = 500;
     throw error;
   }
-
-  let hasNextPage = false;
-  if (collections.length > limit) {
-    // if got an extra result
-    hasNextPage = true; // has a next page of results
-    collections.pop(); // remove extra result
-  }
-
-  return {
-    data: collections,
-    currentPage: page,
-    previousPage: page == 1 ? null : page - 1,
-    nextPage: hasNextPage ? page + 1 : null,
-    countPerPage: limit,
-  };
 };
 /*
  * Pagination
@@ -141,9 +139,8 @@ exports.cursor = async (
     filter = { ...filter, ...filters };
   }
 
-  let collections;
   try {
-    collections = populate
+    const collections = populate
       ? await model
           .find(filter, fields)
           .sort(sort) // Sort by createdAt in descending order
@@ -153,18 +150,17 @@ exports.cursor = async (
           .find(filter, fields)
           .sort(sort) // Sort by createdAt in descending order
           .limit(limit + 1); // Fetch one extra document to check if there's a next page
+    const hasNextPage = collections.length > limit;
+    if (hasNextPage) {
+      collections.pop(); // Remove the extra document if it exists
+    }
+
+    return {
+      data: collections,
+      nextCursor: hasNextPage ? collections[collections.length - 1]._id : null,
+    };
   } catch (error) {
     error.status = 500;
     throw error;
   }
-
-  const hasNextPage = collections.length > limit;
-  if (hasNextPage) {
-    collections.pop(); // Remove the extra document if it exists
-  }
-
-  return {
-    collections,
-    nextCursor: hasNextPage ? collections[collections.length - 1]._id : null,
-  };
 };
