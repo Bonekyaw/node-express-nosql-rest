@@ -9,25 +9,42 @@ exports.offset = async (
   limit = 10,
   filters = {},
   fields = {},
-  sort = {_id: 1}
+  sort = { _id: 1 },
+  lookup_1
 ) => {
   const offset = (page - 1) * limit;
 
   try {
-    const results = await model.aggregate([
-      { $match: filters },
-      {
-        $facet: {
-          data: [
-            { $sort: sort },
-            { $skip: offset },
-            { $limit: limit },
-            { $project: fields },
-          ],
-          totalCount: [{ $match: filters }, { $count: "count" }],
-        },
-      },
-    ]);
+    const results = lookup_1
+      ? await model.aggregate([
+          { $match: filters },
+          {
+            $facet: {
+              data: [
+                { $sort: sort },
+                { $skip: offset },
+                { $limit: limit },
+                { $lookup: lookup_1 },
+                { $project: fields },
+              ],
+              totalCount: [{ $match: filters }, { $count: "count" }],
+            },
+          },
+        ])
+      : await model.aggregate([
+          { $match: filters },
+          {
+            $facet: {
+              data: [
+                { $sort: sort },
+                { $skip: offset },
+                { $limit: limit },
+                { $project: fields },
+              ],
+              totalCount: [{ $match: filters }, { $count: "count" }],
+            },
+          },
+        ]);
 
     const collections = results[0]?.data || [];
     const count = results[0]?.totalCount[0]?.count || 0;
@@ -53,7 +70,8 @@ exports.noCount = async (
   limit = 10,
   filters = {},
   fields = {},
-  sort = {}
+  sort = {},
+  populate
 ) => {
   const offset = (page - 1) * limit;
 
@@ -62,11 +80,18 @@ exports.noCount = async (
   //   .exec();
   let collections;
   try {
-    collections = await model
-      .find(filters, fields)
-      .sort(sort)
-      .skip(offset)
-      .limit(limit + 1);
+    collections = populate
+      ? await model
+          .find(filters, fields)
+          .sort(sort)
+          .skip(offset)
+          .limit(limit + 1)
+          .populate(populate)
+      : await model
+          .find(filters, fields)
+          .sort(sort)
+          .skip(offset)
+          .limit(limit + 1);
   } catch (error) {
     error.status = 500;
     throw error;
@@ -98,7 +123,8 @@ exports.cursor = async (
   limit = 10,
   filters = {},
   fields = {},
-  sort = "_id"
+  sort = "_id",
+  populate
 ) => {
   const cursorR = cursor || null;
   // const query = cursor
@@ -117,10 +143,16 @@ exports.cursor = async (
 
   let collections;
   try {
-    collections = await model
-      .find(filter, fields)
-      .sort(sort) // Sort by createdAt in descending order
-      .limit(limit + 1); // Fetch one extra document to check if there's a next page
+    collections = populate
+      ? await model
+          .find(filter, fields)
+          .sort(sort) // Sort by createdAt in descending order
+          .limit(limit + 1)
+          .populate(populate)
+      : await model
+          .find(filter, fields)
+          .sort(sort) // Sort by createdAt in descending order
+          .limit(limit + 1); // Fetch one extra document to check if there's a next page
   } catch (error) {
     error.status = 500;
     throw error;
