@@ -63,9 +63,10 @@ exports.index = [
     const filters = { status: "active" };
     const fields = "name phone role status lastLogin profile createdAt";
     const sort = "-createdAt";
+    // const sort = "_id";
 
     const result = await paginate.offset(Admin, page, limit, filters, fields, sort);
-    // const result = await paginate.cursor(Admin, cursors, limit, fields, sort);
+    // const result = await paginate.cursor(Admin, cursors, limit, filters, fields, sort);
     res.status(200).json(result);
   }),
 ];

@@ -88,15 +88,26 @@ exports.noCount = async (
  * There are two methods: offset-based and cursor-based paginations.
  * This is cursor-based pagination.
  */
-exports.cursor = async (model, cursor, limit = 10, fields = {}, sort = {}) => {
-  const query = cursor
-    ? { createdAt: { $lt: new Date(cursor) } } // Fetch admins created before the cursor
-    : {};
+exports.cursor = async (model, cursor, limit = 10, filters = {}, fields = {}, sort = "_id") => {
+  const cursorR = cursor || null;
+  // const query = cursor
+  //   ? { createdAt: { $lt: new Date(cursor) } } // Fetch admins created before the cursor
+  //   : {};
+
+  let filter = {};
+  // Add cursor-based filter
+  if (cursorR) {
+    filter._id = { $gt: cursorR };
+  }
+
+  if (filters) {
+    filter = {...filter, ...filters}; 
+  }
 
   let collections;
   try {
     collections = await model
-      .find(query, fields)
+      .find(filter, fields)
       .sort(sort) // Sort by createdAt in descending order
       .limit(limit + 1); // Fetch one extra document to check if there's a next page
   } catch (error) {
@@ -112,7 +123,7 @@ exports.cursor = async (model, cursor, limit = 10, fields = {}, sort = {}) => {
   return {
     collections,
     nextCursor: hasNextPage
-      ? collections[collections.length - 1].createdAt.toISOString()
+      ? collections[collections.length - 1]._id
       : null,
   };
 };
