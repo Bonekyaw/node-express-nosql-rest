@@ -9,38 +9,42 @@ exports.offset = async (
   limit = 10,
   filters = {},
   fields = {},
-  sort = {}
+  sort = {_id: 1}
 ) => {
   const offset = (page - 1) * limit;
 
-  // count = await model.estimatedDocumentCount(filters); // For Large Datasets
-
-  // collections = await model
-  //   .find(filters, fields, { skip: offset, limit: limit })
-  //   .exec();
-  let count;
-  let collections;
   try {
-    count = await model.countDocuments(filters).exec();
-    collections = await model
-      .find(filters, fields)
-      .sort(sort)
-      .skip(offset)
-      .limit(limit);
+    const results = await model.aggregate([
+      { $match: filters },
+      {
+        $facet: {
+          data: [
+            { $sort: sort },
+            { $skip: offset },
+            { $limit: limit },
+            { $project: fields },
+          ],
+          totalCount: [{ $match: filters }, { $count: "count" }],
+        },
+      },
+    ]);
+
+    const collections = results[0]?.data || [];
+    const count = results[0]?.totalCount[0]?.count || 0;
+
+    return {
+      total: count,
+      data: collections,
+      currentPage: page,
+      previousPage: page == 1 ? null : page - 1,
+      nextPage: page * limit >= count ? null : page + 1,
+      lastPage: Math.ceil(count / limit),
+      countPerPage: limit,
+    };
   } catch (error) {
     error.status = 500;
     throw error;
   }
-
-  return {
-    total: count,
-    data: collections,
-    currentPage: page,
-    previousPage: page == 1 ? null : page - 1,
-    nextPage: page * limit >= count ? null : page + 1,
-    lastPage: Math.ceil(count / limit),
-    countPerPage: limit,
-  };
 };
 
 exports.noCount = async (
@@ -88,7 +92,14 @@ exports.noCount = async (
  * There are two methods: offset-based and cursor-based paginations.
  * This is cursor-based pagination.
  */
-exports.cursor = async (model, cursor, limit = 10, filters = {}, fields = {}, sort = "_id") => {
+exports.cursor = async (
+  model,
+  cursor,
+  limit = 10,
+  filters = {},
+  fields = {},
+  sort = "_id"
+) => {
   const cursorR = cursor || null;
   // const query = cursor
   //   ? { createdAt: { $lt: new Date(cursor) } } // Fetch admins created before the cursor
@@ -101,7 +112,7 @@ exports.cursor = async (model, cursor, limit = 10, filters = {}, fields = {}, so
   }
 
   if (filters) {
-    filter = {...filter, ...filters}; 
+    filter = { ...filter, ...filters };
   }
 
   let collections;
@@ -122,8 +133,6 @@ exports.cursor = async (model, cursor, limit = 10, filters = {}, fields = {}, so
 
   return {
     collections,
-    nextCursor: hasNextPage
-      ? collections[collections.length - 1]._id
-      : null,
+    nextCursor: hasNextPage ? collections[collections.length - 1]._id : null,
   };
 };

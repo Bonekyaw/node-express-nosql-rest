@@ -61,11 +61,28 @@ exports.index = [
     // const cursors = req.query.cursor ?? null;
 
     const filters = { status: "active" };
-    const fields = "name phone role status lastLogin profile createdAt";
-    const sort = "-createdAt";
+    // const fields = "name phone role status lastLogin profile createdAt";
+    const fields = {
+      name: 1,
+      phone: 1,
+      role: 1,
+      status: 1,
+      lastLogin: 1,
+      profile: 1,
+      createdAt: 1,
+    };
+    const sort = { _id: -1 };
+    // const sort = "-createdAt";
     // const sort = "_id";
 
-    const result = await paginate.offset(Admin, page, limit, filters, fields, sort);
+    const result = await paginate.offset(
+      Admin,
+      page,
+      limit,
+      filters,
+      fields,
+      sort
+    );
     // const result = await paginate.cursor(Admin, cursors, limit, filters, fields, sort);
     res.status(200).json(result);
   }),
