@@ -38,7 +38,7 @@ exports.uploadProfile = asyncHandler(async (req, res, next) => {
 
 exports.index = [
   // Validate and sanitize fields.
-  // query("page", "Page number must be integer.").isInt({ gt: 0 }).toInt(),
+  query("page", "Page number must be integer.").isInt({ gt: 0 }).toInt(),
   query("limit", "Limit number must be integer.")
     .isInt({ min: 1, max: 15 })
     .toInt(),
@@ -56,9 +56,9 @@ exports.index = [
     // const admin = req.admin;
     // authorise(false, admin, "user");
 
-    // const { page, limit } = req.query;
-    const limit = req.query.limit;
-    const cursors = req.query.cursor ?? null;
+    const { page, limit } = req.query;
+    // const limit = req.query.limit;
+    // const cursors = req.query.cursor ?? null;
 
     const filters = { status: "active" };
     // const fields = "name phone role status lastLogin profile createdAt";
@@ -74,18 +74,18 @@ exports.index = [
     const sort = { createdAt: -1 };
     // const sort = "-createdAt";
 
-    // const result = await offset(
-    //   Admin, 
-    //   page,
-    //   limit,
-    //   filters,
-    //   fields,
-    //   sort
-    // );
+    const result = await offset(
+      Admin, 
+      page,
+      limit,
+      filters,
+      fields,
+      sort
+    );
     // const result = await noCount(
     //   Admin
     // );
-    const result = await cursor(Admin, cursors, limit, filters, fields, sort);
+    // const result = await cursor(Admin, cursors, limit, filters, fields, sort);
     res.status(200).json(result);
   }),
 ];
