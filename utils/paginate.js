@@ -119,7 +119,7 @@ exports.cursor = async (
   limit = 10,
   filters = {},
   fields = {},
-  sort = "_id",
+  sort = "-createdAt",
   populate
 ) => {
   const cursorR = cursor || null;
@@ -130,7 +130,7 @@ exports.cursor = async (
   let filter = {};
   // Add cursor-based filter
   if (cursorR) {
-    filter._id = { $gt: cursorR };
+    filter._id = { $lt: cursorR };
   }
 
   if (filters) {
