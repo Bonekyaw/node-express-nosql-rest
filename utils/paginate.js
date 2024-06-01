@@ -7,44 +7,42 @@ exports.offset = async (
   model,
   page = 1,
   limit = 10,
-  filters = {},
-  fields = {},
-  sort = { _id: 1 },
-  lookup_1
+  filters = null,
+  fields = null,
+  sort = null,
+  lookup_1 = null
 ) => {
   const offset = (page - 1) * limit;
 
+  let options = [];
+  if (sort) {
+    options = [...options, { $sort: sort }];
+  }
+  options = [...options, { $skip: offset }, { $limit: limit }];
+
+  if (lookup_1) {
+    options = [...options, { $lookup: lookup_1 }];
+  }
+  if (fields) {
+    options = [...options, { $project: fields }];
+  }
+
+  let totalCount = [{ $count: "count" }];
+  if (filters) {
+    totalCount = [{ $match: filters }, ...totalCount];
+  }
+
+  let aggregatePipeline = [];
+  if (filters) {
+    aggregatePipeline = [...aggregatePipeline, { $match: filters }];
+  }
+
+  aggregatePipeline = [
+    ...aggregatePipeline,
+    { $facet: { data: options, totalCount: totalCount } },
+  ];
+
   try {
-    const aggregatePipeline = lookup_1
-      ? [
-          { $match: filters },
-          {
-            $facet: {
-              data: [
-                { $sort: sort },
-                { $skip: offset },
-                { $limit: limit },
-                { $lookup: lookup_1 },
-                { $project: fields },
-              ],
-              totalCount: [{ $match: filters }, { $count: "count" }],
-            },
-          },
-        ]
-      : [
-          { $match: filters },
-          {
-            $facet: {
-              data: [
-                { $sort: sort },
-                { $skip: offset },
-                { $limit: limit },
-                { $project: fields },
-              ],
-              totalCount: [{ $match: filters }, { $count: "count" }],
-            },
-          },
-        ];
     const results = await model.aggregate(aggregatePipeline);
     const collections = results[0]?.data || [];
     const count = results[0]?.totalCount[0]?.count || 0;

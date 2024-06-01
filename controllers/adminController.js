@@ -6,7 +6,7 @@ const path = require("path");
 const Admin = require("../models/admin");
 
 const authorise = require("./../utils/authorise");
-const paginate = require("./../utils/paginate");
+const { offset, noCount, cursor } = require("./../utils/paginate");
 const { checkUploadFile } = require("./../utils/file");
 
 exports.uploadProfile = asyncHandler(async (req, res, next) => {
@@ -75,15 +75,18 @@ exports.index = [
     // const sort = "-createdAt";
     // const sort = "_id";
 
-    const result = await paginate.offset(
-      Admin,
+    const result = await offset(
+      Admin, 
       page,
       limit,
       filters,
       fields,
       sort
     );
-    // const result = await paginate.cursor(Admin, cursors, limit, filters, fields, sort);
+    // const result = await noCount(
+    //   Admin,
+    // );
+    // const result = await cursor(Admin, cursors, limit, filters, fields, sort);
     res.status(200).json(result);
   }),
 ];
