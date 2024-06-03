@@ -219,7 +219,7 @@ There are two ways in pagination: **offset-based** and **cursor-based**. You can
 For offset-based 
 
 ```javascript
-const { withCount, noCount, cursor } = require("./../utils/paginate");
+const { offset, noCount, cursor } = require("./../utils/paginate");
 ...
 const { page, limit } = req.query;
 
@@ -248,7 +248,7 @@ res.status(200).json(result);
 ```
 For cursor-based
 ```javascript
-const { withCount, noCount, cursor } = require("./../utils/paginate");
+const { offset, noCount, cursor } = require("./../utils/paginate");
 ...
 const cursors = req.query.cursor ?? null;
 const limit = req.query.limit;
